@@ -1,0 +1,17 @@
+# Hello
+curl -X GET http://localhost:8080/<%=props.artifact%>/hello
+
+# Date-now
+curl -X GET http://localhost:8080/<%=props.artifact%>/date/now
+
+<% if (props.jpa) {%># Database Save
+curl -X POST http://localhost:8080/<%=props.artifact%>/registry/save -d "description=Saving a new one"
+
+# Database Update
+curl -X PUT http://localhost:8080/<%=props.artifact%>/registry/update/1 -d "description=Updating a registry"
+
+# Database List all
+curl -X GET http://localhost:8080/<%=props.artifact%>/registry/list-all
+
+# Database Delete
+curl -X DELETE http://localhost:8080/<%=props.artifact%>/registry/remove/1<% } %>

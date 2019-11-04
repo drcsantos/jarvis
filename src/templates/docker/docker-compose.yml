@@ -1,0 +1,191 @@
+version: "3.7"
+services:
+  app:
+    image: @project.artifactId@:@project.version@
+    ports: 
+      - 8080:8080
+      - 9090:9090
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+        reservations:
+          cpus: '0.20'
+          memory: 128M
+      mode: replicated
+      replicas: 1
+    depends_on:
+      <% if (props.influx) { %>- influxdb<% } %>
+      <% if (props.postgres) { %>- postgres<% } %>
+      <% if (props.mysql) { %>- mysql<% } %>
+      <% if (props.mssql) { %>- mssql<% } %>
+      <% if (props.redis) { %>- redis<% } %>
+      <% if (props.mongodb) { %>- mongodb<% } %>
+      <% if (props.kafka) { %>- kafka<% } %>
+    networks:
+      - backend
+      - frontend
+      <% if (props.kafka) { %>- kafka-tier<% } %>
+    links:
+      <% if (props.influx) { %>- influxdb:influxdb<% } %>
+      <% if (props.postgres) { %>- postgres:postgres<% } %>
+      <% if (props.mysql) { %>- mysql:mysql<% } %>
+      <% if (props.mssql) { %>- mssql:mssql<% } %>
+      <% if (props.redis) { %>- redis:redis<% } %>
+      <% if (props.mongodb) { %>- mongodb:mongodb<% } %>
+      <% if (props.kafka) { %>- kafka:kafka<% } %>
+  <% if (props.influx) { %>influxdb:
+    image: influxdb:1.7.5-alpine
+    ports: 
+      - 8086:8086
+      - 8083:8083
+    networks:
+      - backend
+    volumes:
+      - influxdbdata:/var/lib/influxdb
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+        reservations:
+          cpus: '0.20'
+          memory: 128M
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]<% } %>
+  <% if (props.postgres) { %>postgres:
+    image: postgres:11.2-alpine
+    ports: 
+      - 5432:5432
+    networks:
+      - backend
+    volumes:
+      - postgresdata:/var/lib/postgresql/data
+    environment:
+      - "POSTGRES_PASSWORD=pgdb<%=props.artifact%>@123"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+        reservations:
+          cpus: '0.20'
+          memory: 128M
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]<% } %>
+  <% if (props.redis) { %>redis:
+    image: redis:5.0.4-alpine
+    ports: 
+      - 6379:6379
+    networks:
+      - backend
+    volumes:
+      - redisdata:/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+        reservations:
+          cpus: '0.20'
+          memory: 128M
+      mode: replicated
+      replicas: 1<% } %>
+  <% if (props.mongodb) { %>mongodb:
+    image: bitnami/mongodb:4.1
+    ports: 
+      - 27017:27017
+    networks:
+      - backend
+    volumes:
+      - mongodbdata:/bitnami
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+        reservations:
+          cpus: '0.20'
+          memory: 128M
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]<% } %>
+  <% if (props.rabbit) { %>rabbitmq:
+    image: rabbitmq:3.7.14-management-alpine
+    ports: 
+      - 5672:5672
+      - 15672:15672
+    networks:
+      - backend
+    volumes:
+      - rabbitdata:/var/lib/rabbitmq
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+        reservations:
+          cpus: '0.20'
+          memory: 128M
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]<% } %>
+  <% if (props.kafka) { %>zookeeper:
+    image: debezium/zookeeper:0.9.5.Final
+    ports: 
+      - 2181
+      - 2888
+      - 3888
+    networks:
+      - kafka-tier
+    deploy:
+      resources:
+        limits:
+          cpus: '0.20'
+          memory: 256M
+        reservations:
+          cpus: '0.10'
+          memory: 128M
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+  kafka:
+    image: debezium/kafka:0.9.5.Final
+    ports: 
+      - 9092
+    networks:
+      - kafka-tier
+    environment:
+      - "ZOOKEEPER_CONNECT=zookeeper:2181"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.20'
+          memory: 256M
+        reservations:
+          cpus: '0.10'
+          memory: 128M
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]<% } %>
+networks:
+  backend:
+  frontend:
+  <% if (props.kafka) { %>kafka-tier:<% } %>
+volumes:
+    <% if (props.metricsinflux) { %>influxdbdata:<% } %>
+    <% if (props.postgres) { %>postgresdata:<% } %>
+    <% if (props.mysql) { %>mysqldata:<% } %>
+    <% if (props.mssql) { %>mssqldata:<% } %>
+    <% if (props.redis) { %>redisdata:<% } %>
+    <% if (props.mongodb) { %>mongodbdata:<% } %>
+    <% if (props.rabbit) { %>rabbitdata:<% } %>
